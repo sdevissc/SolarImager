@@ -1,0 +1,258 @@
+{
+	"BUILD_DIR" : "/home/sdv/Astro/Programs/solar_imager/v2/build/SolarImager_autogen",
+	"CMAKE_BINARY_DIR" : "/home/sdv/Astro/Programs/solar_imager/v2/build",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/sdv/Astro/Programs/solar_imager/v2/build",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/sdv/Astro/Programs/solar_imager/v2",
+	"CMAKE_EXECUTABLE" : "/usr/bin/cmake",
+	"CMAKE_LIST_FILES" : 
+	[
+		"/home/sdv/Astro/Programs/solar_imager/v2/CMakeLists.txt",
+		"/home/sdv/Astro/Programs/solar_imager/v2/build/CMakeFiles/3.28.3/CMakeSystem.cmake",
+		"/usr/share/cmake-3.28/Modules/CMakeSystemSpecificInitialize.cmake",
+		"/usr/share/cmake-3.28/Modules/Platform/Linux-Initialize.cmake",
+		"/home/sdv/Astro/Programs/solar_imager/v2/build/CMakeFiles/3.28.3/CMakeCXXCompiler.cmake",
+		"/usr/share/cmake-3.28/Modules/CMakeSystemSpecificInformation.cmake",
+		"/usr/share/cmake-3.28/Modules/CMakeGenericSystem.cmake",
+		"/usr/share/cmake-3.28/Modules/CMakeInitializeConfigs.cmake",
+		"/usr/share/cmake-3.28/Modules/Platform/Linux.cmake",
+		"/usr/share/cmake-3.28/Modules/Platform/UnixPaths.cmake",
+		"/usr/share/cmake-3.28/Modules/CMakeCXXInformation.cmake",
+		"/usr/share/cmake-3.28/Modules/CMakeLanguageInformation.cmake",
+		"/usr/share/cmake-3.28/Modules/Compiler/GNU-CXX.cmake",
+		"/usr/share/cmake-3.28/Modules/Compiler/GNU.cmake",
+		"/usr/share/cmake-3.28/Modules/Compiler/CMakeCommonCompilerMacros.cmake",
+		"/usr/share/cmake-3.28/Modules/Platform/Linux-GNU-CXX.cmake",
+		"/usr/share/cmake-3.28/Modules/Platform/Linux-GNU.cmake",
+		"/usr/share/cmake-3.28/Modules/CMakeCommonLanguageInclude.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5/Qt5ConfigVersion.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5/Qt5Config.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5/Qt5ModuleLocation.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Core/Qt5CoreConfigVersion.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Core/Qt5CoreConfig.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Core/Qt5CoreConfigExtras.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Core/Qt5CoreMacros.cmake",
+		"/usr/share/cmake-3.28/Modules/CMakeParseArguments.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Widgets/Qt5WidgetsConfigVersion.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Widgets/Qt5WidgetsConfig.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5GuiConfigVersion.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5GuiConfig.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QComposePlatformInputContextPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QEglFSEmulatorIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QEglFSIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QEglFSKmsEglDeviceIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QEglFSKmsGbmIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QEglFSX11IntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QEvdevKeyboardPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QEvdevMousePlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QEvdevTabletPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QEvdevTouchScreenPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QGifPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QICOPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QIbusPlatformInputContextPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QJpegPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QLibInputPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QLinuxFbIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QMinimalEglIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QMinimalIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QOffscreenIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QTuioTouchPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QVncIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QXcbEglIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QXcbGlxIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5Gui_QXcbIntegrationPlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Widgets/Qt5WidgetsConfigExtras.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Widgets/Qt5WidgetsMacros.cmake",
+		"/usr/share/cmake-3.28/Modules/CMakeParseArguments.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5GuiConfigVersion.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5Gui/Qt5GuiConfig.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5SerialPort/Qt5SerialPortConfigVersion.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/Qt5SerialPort/Qt5SerialPortConfig.cmake"
+	],
+	"CMAKE_SOURCE_DIR" : "/home/sdv/Astro/Programs/solar_imager/v2",
+	"DEP_FILE" : "/home/sdv/Astro/Programs/solar_imager/v2/build/SolarImager_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "SolarImager_autogen/timestamp",
+	"HEADERS" : 
+	[
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/BaslerCamera.h",
+			"MU",
+			"UVLADIE3JM/moc_BaslerCamera.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/CameraInterface.h",
+			"MU",
+			"UVLADIE3JM/moc_CameraInterface.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/FrameGrabber.h",
+			"MU",
+			"UVLADIE3JM/moc_FrameGrabber.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/HistogramWidget.h",
+			"MU",
+			"UVLADIE3JM/moc_HistogramWidget.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/MainWindow.h",
+			"MU",
+			"UVLADIE3JM/moc_MainWindow.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/PlayerOneCameraInterface.h",
+			"MU",
+			"UVLADIE3JM/moc_PlayerOneCameraInterface.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/PreviewWidget.h",
+			"MU",
+			"UVLADIE3JM/moc_PreviewWidget.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/SSMReader.h",
+			"MU",
+			"UVLADIE3JM/moc_SSMReader.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/SeePlot.h",
+			"MU",
+			"UVLADIE3JM/moc_SeePlot.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/SerPlayerDialog.h",
+			"MU",
+			"UVLADIE3JM/moc_SerPlayerDialog.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/Theme.h",
+			"MU",
+			"UVLADIE3JM/moc_Theme.cpp",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/ZwoCameraInterface.h",
+			"MU",
+			"UVLADIE3JM/moc_ZwoCameraInterface.cpp",
+			null
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/sdv/Astro/Programs/solar_imager/v2/build/SolarImager_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/sdv/Astro/Programs/solar_imager/v2/build/SolarImager_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : 
+	[
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_NO_DEBUG",
+		"QT_SERIALPORT_LIB",
+		"QT_WIDGETS_LIB"
+	],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/sdv/Astro/Programs/solar_imager/v2/src",
+		"/usr/include/x86_64-linux-gnu/qt5",
+		"/usr/include/x86_64-linux-gnu/qt5/QtCore",
+		"/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++",
+		"/usr/include/x86_64-linux-gnu/qt5/QtWidgets",
+		"/usr/include/x86_64-linux-gnu/qt5/QtGui",
+		"/usr/include/x86_64-linux-gnu/qt5/QtSerialPort",
+		"/usr/include/c++/13",
+		"/usr/include/x86_64-linux-gnu/c++/13",
+		"/usr/include/c++/13/backward",
+		"/usr/lib/gcc/x86_64-linux-gnu/13/include",
+		"/usr/local/include",
+		"/usr/include/x86_64-linux-gnu",
+		"/usr/include"
+	],
+	"MOC_MACRO_NAMES" : [ "Q_OBJECT", "Q_GADGET", "Q_NAMESPACE", "Q_NAMESPACE_EXPORT" ],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-std=gnu++17",
+		"-dM",
+		"-E",
+		"-c",
+		"/usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/sdv/Astro/Programs/solar_imager/v2/build/SolarImager_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : 
+	[
+		"/home/sdv/Astro/Programs/solar_imager/v2/src/BaslerCamera.cpp",
+		"/home/sdv/Astro/Programs/solar_imager/v2/src/PlayerOneCameraInterface.cpp",
+		"/home/sdv/Astro/Programs/solar_imager/v2/src/ZwoCameraInterface.cpp"
+	],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 4,
+	"PARSE_CACHE_FILE" : "/home/sdv/Astro/Programs/solar_imager/v2/build/CMakeFiles/SolarImager_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/usr/lib/qt5/bin/moc",
+	"QT_UIC_EXECUTABLE" : "/usr/lib/qt5/bin/uic",
+	"QT_VERSION_MAJOR" : 5,
+	"QT_VERSION_MINOR" : 15,
+	"SETTINGS_FILE" : "/home/sdv/Astro/Programs/solar_imager/v2/build/CMakeFiles/SolarImager_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/FrameGrabber.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/HistogramWidget.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/MainWindow.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/PreviewWidget.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/SSMReader.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/SeePlot.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/sdv/Astro/Programs/solar_imager/v2/src/SerPlayerDialog.cpp",
+			"MU",
+			null
+		],
+		[ "/home/sdv/Astro/Programs/solar_imager/v2/src/main.cpp", "MU", null ]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"VERBOSITY" : 0
+}

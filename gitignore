@@ -1,0 +1,41 @@
+# Build output
+build/
+*.o
+*.a
+*.so
+*.dll
+*.lib
+*.exe
+
+# Qt/CMake generated
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.autogen/
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# IDE files
+.qtcreator/
+.vscode/
+*.user
+*.pro.user
+*.creator
+*.config
+*.creator.user
+
+# SDK headers (must be copied manually — see README)
+src/sdk/
+
+# Data files
+*.ser
+*.fits
+*.fit
+*.fts
+*.csv
+
+# OS
+.DS_Store
+Thumbs.db
