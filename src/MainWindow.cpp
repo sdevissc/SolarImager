@@ -97,14 +97,6 @@ MainWindow::MainWindow(QWidget *parent)
         m_spinExposure->blockSignals(false);
         if (m_camera) m_camera->setExposure(us);
     });
-    connect(m_chkAutoExposure, &QCheckBox::stateChanged, this, [this](int s) {
-        bool on = (s == Qt::Checked);
-        m_spinExposure->setEnabled(!on);
-        m_sliderExposure->setEnabled(!on);
-        if (m_camera && !m_camera->isSimulated())
-            m_camera->setAutoExposure(on);
-    });
-
     // ── Gain ──────────────────────────────────────────────────────────────────
     connect(m_spinGain, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, [this](double v) {
@@ -741,7 +733,6 @@ void MainWindow::onSsmDisconnected()
     m_lblSsmInput->setText("—");
     m_lblSsmInput->setStyleSheet("font-weight:bold; font-size:13px;");
     m_lblSsmMean->setText("—");
-    m_lblSsmBest->setText("—");
     if (m_ssmLogFile.isOpen()) {
         m_ssmLogStream.flush();
         m_ssmLogFile.close();
@@ -800,10 +791,9 @@ void MainWindow::onSsmNewSample(double inputLevel, double seeing)
 
     // Stats
     if (m_ssmHistory.size() >= 2) {
-        double sum = 0, minV = m_ssmHistory[0];
-        for (double v : m_ssmHistory) { sum += v; minV = std::min(minV, v); }
+        double sum = 0;
+        for (double v : m_ssmHistory) sum += v;
         m_lblSsmMean->setText(QString("%1\"").arg(sum / m_ssmHistory.size(), 0, 'f', 2));
-        m_lblSsmBest->setText(QString("%1\"").arg(minV, 0, 'f', 2));
     }
 
     // Trigger logic (only when input level is valid)
@@ -975,25 +965,7 @@ void MainWindow::buildUi()
     rightPanel->addLayout(ssmBar);
 
     rightPanel->addWidget(makeSsmGroup());
-    rightPanel->addWidget(makeRecordingGroup());
-
-    // Record + Snap buttons row
-    auto *recBtnRow = new QHBoxLayout();
-    m_btnRecord = makeToggleBtn("⏺  Record", 110);
-    recBtnRow->addWidget(m_btnRecord);
-    auto *btnSnap2 = new QPushButton("📷  Snap");
-    btnSnap2->setFixedHeight(28);
-    btnSnap2->setFixedWidth(80);
-    btnSnap2->setStyleSheet("padding:2px 6px;");
-    connect(btnSnap2, &QPushButton::clicked, this, &MainWindow::onSnapFrame);
-    recBtnRow->addWidget(btnSnap2);
-    recBtnRow->addStretch();
-    rightPanel->addLayout(recBtnRow);
-
-    m_progressBar = new QProgressBar();
-    m_progressBar->setVisible(false);
-    rightPanel->addWidget(m_progressBar);
-
+    rightPanel->addWidget(makeSamplingGroup());
     rightPanel->addStretch();
 
     root->addLayout(rightPanel, 1);
@@ -1031,7 +1003,6 @@ QGroupBox *MainWindow::makeCameraInfoGroup()
 
 QGroupBox *MainWindow::makeExposureGroup()
 {
-    // ── Merged "Acquisition" group: Exposure + Gain + Pixel Format ──────────
     auto *grp = new QGroupBox("Acquisition");
     auto *lay = new QGridLayout(grp);
     lay->setVerticalSpacing(4);
@@ -1048,31 +1019,72 @@ QGroupBox *MainWindow::makeExposureGroup()
     lay->addWidget(m_spinExposure, 0, 1);
     m_sliderExposure = new QSlider(Qt::Horizontal);
     m_sliderExposure->setRange(1, 1000);
-    // Sync to default 10000µs: v = 1 + 999 * log10(10000/100) / 4
     m_sliderExposure->setValue(static_cast<int>(1.0 + 999.0 * std::log10(10000.0 / 100.0) / 4.0));
     lay->addWidget(m_sliderExposure, 0, 2);
 
-    // Auto exposure checkbox on its own row
-    m_chkAutoExposure = new QCheckBox("Auto Exposure");
-    lay->addWidget(m_chkAutoExposure, 1, 1, 1, 2);
-
     // ── Gain row ─────────────────────────────────────────────────────────────
-    lay->addWidget(new QLabel("Gain (dB):"), 2, 0);
+    lay->addWidget(new QLabel("Gain (dB):"), 1, 0);
     m_spinGain = new QDoubleSpinBox();
     m_spinGain->setRange(0, 24);
     m_spinGain->setSingleStep(0.1);
     m_spinGain->setDecimals(2);
     m_spinGain->setFixedWidth(90);
-    lay->addWidget(m_spinGain, 2, 1);
+    lay->addWidget(m_spinGain, 1, 1);
     m_sliderGain = new QSlider(Qt::Horizontal);
     m_sliderGain->setRange(0, 240);
-    lay->addWidget(m_sliderGain, 2, 2);
+    lay->addWidget(m_sliderGain, 1, 2);
 
     // ── Pixel format row ─────────────────────────────────────────────────────
-    lay->addWidget(new QLabel("Format:"), 3, 0);
+    lay->addWidget(new QLabel("Format:"), 2, 0);
     m_comboFormat = new QComboBox();
     m_comboFormat->addItems({"Mono8", "Mono12", "BayerRG8"});
-    lay->addWidget(m_comboFormat, 3, 1, 1, 2);
+    lay->addWidget(m_comboFormat, 2, 1, 1, 2);
+
+    // ── Separator ─────────────────────────────────────────────────────────────
+    auto *sep = new QFrame();
+    sep->setFrameShape(QFrame::HLine);
+    sep->setStyleSheet("color:#bbb;");
+    lay->addWidget(sep, 3, 0, 1, 3);
+
+    // ── Frames row ───────────────────────────────────────────────────────────
+    lay->addWidget(new QLabel("Frames:"), 4, 0);
+    m_spinFrames = new QSpinBox();
+    m_spinFrames->setRange(1, 100000);
+    m_spinFrames->setValue(100);
+    lay->addWidget(m_spinFrames, 4, 1, 1, 2);
+
+    // ── File name row ─────────────────────────────────────────────────────────
+    lay->addWidget(new QLabel("File name:"), 5, 0);
+    m_txtFilename = new QLineEdit();
+    m_txtFilename->setPlaceholderText("Leave empty for auto timestamp");
+    lay->addWidget(m_txtFilename, 5, 1, 1, 2);
+
+    // ── Directory row ─────────────────────────────────────────────────────────
+    lay->addWidget(new QLabel("Directory:"), 6, 0);
+    m_btnSaveDir = new QPushButton("Browse…");
+    lay->addWidget(m_btnSaveDir, 6, 1, 1, 2);
+
+    m_lblSaveDir = new QLabel(QDir::homePath());
+    m_lblSaveDir->setStyleSheet("color:#555; font-size:11px;");
+    m_lblSaveDir->setWordWrap(true);
+    lay->addWidget(m_lblSaveDir, 7, 0, 1, 3);
+
+    // ── Record + Snap buttons ─────────────────────────────────────────────────
+    auto *recRow = new QHBoxLayout();
+    m_btnRecord = makeToggleBtn("⏺  Record", 110);
+    recRow->addWidget(m_btnRecord);
+    auto *btnSnap = new QPushButton("📷  Snap");
+    btnSnap->setFixedHeight(28);
+    btnSnap->setFixedWidth(80);
+    btnSnap->setStyleSheet("padding:2px 6px;");
+    connect(btnSnap, &QPushButton::clicked, this, &MainWindow::onSnapFrame);
+    recRow->addWidget(btnSnap);
+    recRow->addStretch();
+    lay->addLayout(recRow, 8, 0, 1, 3);
+
+    m_progressBar = new QProgressBar();
+    m_progressBar->setVisible(false);
+    lay->addWidget(m_progressBar, 9, 0, 1, 3);
 
     lay->setColumnStretch(2, 1);
     return grp;
@@ -1120,34 +1132,6 @@ QGroupBox *MainWindow::makeOffsetGroup()
     hint->setStyleSheet("color:#555; font-size:10px; font-style:italic;");
     hint->setWordWrap(true);
     outer->addWidget(hint);
-    return grp;
-}
-
-QGroupBox *MainWindow::makeRecordingGroup()
-{
-    auto *grp = new QGroupBox("Recording");
-    auto *lay = new QGridLayout(grp);
-    lay->setVerticalSpacing(6);
-
-    lay->addWidget(new QLabel("Frames:"), 0, 0);
-    m_spinFrames = new QSpinBox();
-    m_spinFrames->setRange(1, 100000);
-    m_spinFrames->setValue(100);
-    lay->addWidget(m_spinFrames, 0, 1);
-
-    lay->addWidget(new QLabel("File name:"), 1, 0);
-    m_txtFilename = new QLineEdit();
-    m_txtFilename->setPlaceholderText("Leave empty for auto timestamp");
-    lay->addWidget(m_txtFilename, 1, 1);
-
-    lay->addWidget(new QLabel("Directory:"), 2, 0);
-    m_btnSaveDir = new QPushButton("Browse…");
-    lay->addWidget(m_btnSaveDir, 2, 1);
-
-    m_lblSaveDir = new QLabel(QDir::homePath());
-    m_lblSaveDir->setStyleSheet("color:#555; font-size:11px;");
-    m_lblSaveDir->setWordWrap(true);
-    lay->addWidget(m_lblSaveDir, 3, 0, 1, 2);
     return grp;
 }
 
@@ -1201,6 +1185,96 @@ QWidget *MainWindow::makeActionButtons()
     return w;
 }
 
+QGroupBox *MainWindow::makeSamplingGroup()
+{
+    auto *grp = new QGroupBox("Sampling Calculator");
+    auto *lay = new QGridLayout(grp);
+    lay->setVerticalSpacing(4);
+    lay->setHorizontalSpacing(4);
+
+    auto makeSpin = [](double min, double max, double val,
+                       double step, int decimals, const QString &suffix) {
+        auto *s = new QDoubleSpinBox();
+        s->setRange(min, max);
+        s->setValue(val);
+        s->setSingleStep(step);
+        s->setDecimals(decimals);
+        s->setSuffix(suffix);
+        s->setFixedWidth(95);
+        return s;
+    };
+
+    // Row 0: D | F
+    lay->addWidget(new QLabel("D:"),           0, 0);
+    m_spinDiameter    = makeSpin(10, 2000, 200, 10, 0, " mm");
+    lay->addWidget(m_spinDiameter,             0, 1);
+    lay->addWidget(new QLabel("F:"),           0, 2);
+    m_spinFocalLength = makeSpin(100, 20000, 3000, 100, 0, " mm");
+    lay->addWidget(m_spinFocalLength,          0, 3);
+
+    // Row 1: PixSize | λ
+    lay->addWidget(new QLabel("Pix:"),         1, 0);
+    m_spinPixelSize   = makeSpin(1.0, 30.0, 2.9, 0.1, 2, " µm");
+    lay->addWidget(m_spinPixelSize,            1, 1);
+    lay->addWidget(new QLabel(u8"\u03BB:"),    1, 2);
+    m_spinWavelength  = makeSpin(300, 1100, 550, 10, 0, " nm");
+    lay->addWidget(m_spinWavelength,           1, 3);
+
+    // Results
+    auto *sep = new QFrame();
+    sep->setFrameShape(QFrame::HLine);
+    sep->setStyleSheet("color:#bbb;");
+    lay->addWidget(sep, 2, 0, 1, 4);
+
+    lay->addWidget(new QLabel("Sampling:"),   3, 0, 1, 2);
+    m_lblSampling = new QLabel("—");
+    m_lblSampling->setStyleSheet("font-weight:bold;");
+    lay->addWidget(m_lblSampling,             3, 2, 1, 2);
+
+    lay->addWidget(new QLabel("S/N factor:"), 4, 0, 1, 2);
+    m_lblSamplingFactor = new QLabel("—");
+    m_lblSamplingFactor->setStyleSheet("font-weight:bold;");
+    lay->addWidget(m_lblSamplingFactor,       4, 2, 1, 2);
+
+    auto *hint = new QLabel("Shannon-Nyquist: >3 good, 2–3 ok, <2 undersampled");
+    hint->setStyleSheet("color:#555; font-size:9px; font-style:italic;");
+    hint->setWordWrap(true);
+    lay->addWidget(hint, 5, 0, 1, 4);
+
+    auto calc = [this]() {
+        const double D   = m_spinDiameter->value();
+        const double F   = m_spinFocalLength->value();
+        const double pix = m_spinPixelSize->value();
+        const double lam = m_spinWavelength->value();
+
+        const double pixMm      = pix / 1000.0;
+        const double sampling   = 206265.0 * pixMm / F;
+        const double lamMm      = lam / 1e6;
+        const double resolution = 1.22 * lamMm / D * 206265.0;
+        const double factor     = resolution / sampling;
+
+        m_lblSampling->setText(QString("%1 \"/px").arg(sampling, 0, 'f', 3));
+
+        QString col;
+        if      (factor >= 3.0) col = "#1a7a1a";
+        else if (factor >= 2.0) col = "#b35c00";
+        else                    col = "#c0392b";
+
+        m_lblSamplingFactor->setText(QString("%1").arg(factor, 0, 'f', 2));
+        m_lblSamplingFactor->setStyleSheet(
+            QString("font-weight:bold; color:%1;").arg(col));
+    };
+
+    auto recalc = [calc](double) { calc(); };
+    connect(m_spinDiameter,    QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, recalc);
+    connect(m_spinFocalLength, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, recalc);
+    connect(m_spinPixelSize,   QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, recalc);
+    connect(m_spinWavelength,  QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, recalc);
+
+    calc();
+    return grp;
+}
+
 // ── SSM group ─────────────────────────────────────────────────────────────────
 
 QGroupBox *MainWindow::makeSsmGroup()
@@ -1229,11 +1303,6 @@ QGroupBox *MainWindow::makeSsmGroup()
     m_lblSsmMean = new QLabel("—");
     m_lblSsmMean->setStyleSheet("font-weight:bold;");
     statsGrid->addWidget(m_lblSsmMean, 0, 3);
-
-    statsGrid->addWidget(new QLabel("Best:"), 1, 2);
-    m_lblSsmBest = new QLabel("—");
-    m_lblSsmBest->setStyleSheet("font-weight:bold;");
-    statsGrid->addWidget(m_lblSsmBest, 1, 3);
     outer->addLayout(statsGrid);
 
     // Plot placeholder — replaced by SeePlot in Phase 6

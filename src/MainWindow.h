@@ -48,10 +48,10 @@ private:
 
     // ── Left panel (camera controls) ────────────────────────────────────────
     QGroupBox *makeCameraInfoGroup();
-    QGroupBox *makeExposureGroup();   // merged: Exposure + Gain + Pixel Format
+    QGroupBox *makeExposureGroup();   // merged: Acquisition + Recording
     QGroupBox *makeOffsetGroup();
-    QGroupBox *makeRecordingGroup();
     QGroupBox *makeHistogramGroup();
+    QGroupBox *makeSamplingGroup();
     QWidget   *makeActionButtons();
 
     // ── Centre panel (preview) ───────────────────────────────────────────────
@@ -96,9 +96,8 @@ private:
     QLabel       *m_lblCameraInfo  = nullptr;
 
     // Exposure
-    QDoubleSpinBox *m_spinExposure = nullptr;
+    QDoubleSpinBox *m_spinExposure   = nullptr;
     QSlider        *m_sliderExposure = nullptr;
-    QCheckBox      *m_chkAutoExposure = nullptr;
 
     // Gain
     QDoubleSpinBox *m_spinGain     = nullptr;
@@ -134,6 +133,14 @@ private:
     QLabel *m_lblFps  = nullptr;
     QLabel *m_lblMbps = nullptr;
 
+    // Sampling calculator
+    QDoubleSpinBox *m_spinDiameter      = nullptr;
+    QDoubleSpinBox *m_spinFocalLength   = nullptr;
+    QDoubleSpinBox *m_spinPixelSize     = nullptr;
+    QDoubleSpinBox *m_spinWavelength    = nullptr;
+    QLabel         *m_lblSampling       = nullptr;
+    QLabel         *m_lblSamplingFactor = nullptr;
+
     // SSM panel
     QComboBox   *m_comboSsmPort  = nullptr;
     QComboBox   *m_comboSsmBaud  = nullptr;
@@ -141,7 +148,6 @@ private:
     QLabel      *m_lblSsmCurrent = nullptr;
     QLabel      *m_lblSsmInput   = nullptr;
     QLabel      *m_lblSsmMean    = nullptr;
-    QLabel      *m_lblSsmBest    = nullptr;
     SeePlot     *m_ssmPlot       = nullptr;
     QDoubleSpinBox *m_spinSsmThreshold = nullptr;
     QSpinBox       *m_spinSsmConsec    = nullptr;
