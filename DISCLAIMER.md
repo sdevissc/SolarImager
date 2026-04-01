@@ -26,9 +26,11 @@ license terms:
 | cfitsio | NASA/HEASARC | Public domain / NASA open source |
 
 The SDK headers (`ASICamera2.h`, `PlayerOneCamera.h`) are distributed by 
-their respective manufacturers and are **not** included in this repository. 
-Users must obtain them directly from the manufacturer and copy them into 
-`src/sdk/` before building.
+their respective manufacturers and are included in this repository under 
+`src/sdk/` for convenience. They remain the property of their respective 
+manufacturers and are subject to their own license terms. If you prefer, 
+you can obtain them directly from the manufacturer and replace the copies 
+in `src/sdk/`.
 
 ## Third-party libraries
 

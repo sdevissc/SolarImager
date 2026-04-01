@@ -83,15 +83,9 @@ windeployqt Release\SolarImager.exe
 
 ## SDK headers
 
-The ZWO and Player One SDK headers (`ASICamera2.h`, `PlayerOneCamera.h`) must be placed in `src/sdk/` before building:
-
-```bash
-# Linux (adjust paths as needed)
-cp /usr/local/include/ASICamera2.h    src/sdk/
-cp /usr/local/include/PlayerOneCamera.h src/sdk/
-```
-
-These headers are not included in the repository as they are distributed by their respective manufacturers.
+The ZWO and Player One SDK headers (`ASICamera2.h`, `PlayerOneCamera.h`) are
+included in `src/sdk/` and are distributed by their respective manufacturers.
+They are subject to their own license terms — see [DISCLAIMER.md](DISCLAIMER.md).
 
 ---
 
