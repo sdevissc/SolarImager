@@ -146,3 +146,9 @@ Input level below 0.5 (no light on photodiode) disables the auto-trigger to avoi
 MIT License — see [LICENSE](LICENSE) for details.
 
 Camera SDK libraries and headers are subject to their respective manufacturer licenses.
+
+---
+
+## Disclaimer
+
+This software is provided for **personal, non-commercial use only**, with no warranty of any kind. See [DISCLAIMER.md](DISCLAIMER.md) for full terms, third-party SDK acknowledgements, and license information.
