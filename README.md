@@ -1,8 +1,8 @@
 # SolarImager
 
-A Linux (and future Windows) desktop application for solar and planetary imaging, combining direct-SDK camera streaming with the Airylab SSM seeing monitor for seeing-triggered lucky imaging capture.
+A Linux desktop application for solar and planetary imaging, combining direct-SDK camera streaming with the Airylab SSM seeing monitor for seeing-triggered lucky imaging capture.
 
-![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-blue)
+![Platform](https://img.shields.io/badge/platform-Linux-blue)
 ![Qt](https://img.shields.io/badge/Qt-5-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
@@ -24,6 +24,7 @@ A Linux (and future Windows) desktop application for solar and planetary imaging
 - **Preview controls** — zoom (Fit to 400%), false color palettes, black/white point sliders
 - **Histogram** — linear/log scale with saturated and zero-level pixel percentages
 - **ROI drag-selection** — click and drag on the preview to set camera ROI
+- **Sampling calculator** — computes arcsec/pixel and Shannon-Nyquist factor from aperture, focal length, pixel size and wavelength
 
 ---
 
@@ -31,28 +32,28 @@ A Linux (and future Windows) desktop application for solar and planetary imaging
 
 ### Build tools
 - CMake ≥ 3.16
-- C++17 compiler (GCC ≥ 9 on Linux, MSVC 2019+ or MinGW on Windows)
+- C++17 compiler (GCC ≥ 9)
 - Qt5 (Core, Widgets, Gui, SerialPort)
 
 ### Camera SDKs
-| Camera brand | SDK | Linux | Windows |
-|---|---|---|---|
-| Basler | [Pylon SDK](https://www.baslerweb.com/en/downloads/software-downloads/) | `/opt/pylon` | `C:\Program Files\Basler\pylon 7` |
-| ZWO | [ASI SDK](https://astronomy-imaging-camera.com/software-drivers) | `/usr/local/lib` | `C:\ASI_SDK` |
-| Player One | [Player One SDK](https://player-one-astronomy.com/service/software.html) | `/usr/local/lib` | `C:\PlayerOne_SDK` |
+| Camera brand | SDK | Default path |
+|---|---|---|
+| Basler | [Pylon SDK](https://www.baslerweb.com/en/downloads/software-downloads/) | `/opt/pylon` |
+| ZWO | [ASI SDK](https://astronomy-imaging-camera.com/software-drivers) | `/usr/local/lib` |
+| Player One | [Player One SDK](https://player-one-astronomy.com/service/software.html) | `/usr/local/lib` |
 
 ### Other dependencies
-| Library | Linux | Windows |
-|---|---|---|
-| cfitsio | `sudo apt install libcfitsio-dev` | Build from [source](https://heasarc.gsfc.nasa.gov/fitsio/) or set `CFITSIO_ROOT` |
+| Library | Install |
+|---|---|
+| cfitsio | `sudo apt install libcfitsio-dev` |
 
 ---
 
-## Building on Linux
+## Building
 
 ```bash
 # Install Qt5 and cfitsio
-sudo apt install qt5-default libqt5serialport5-dev libcfitsio-dev
+sudo apt install qtbase5-dev libqt5serialport5-dev libcfitsio-dev
 
 # Install camera SDKs (see links above), then:
 mkdir build && cd build
@@ -64,20 +65,6 @@ make -j$(nproc)
 | Option | Default | Description |
 |---|---|---|
 | `PYLON_ROOT` | `/opt/pylon` | Path to Basler Pylon SDK root |
-
----
-
-## Building on Windows
-
-> Windows support is work in progress. The CMakeLists.txt is ready but has not been tested yet.
-
-```bat
-mkdir build && cd build
-cmake .. -G "Visual Studio 17 2022" -A x64 ^
-    -DPYLON_ROOT="C:\Program Files\Basler\pylon 7"
-cmake --build . --config Release
-windeployqt Release\SolarImager.exe
-```
 
 ---
 
@@ -93,21 +80,21 @@ They are subject to their own license terms — see [DISCLAIMER.md](DISCLAIMER.m
 
 ```
 src/
-├── sdk/                        # Third-party SDK headers (not in repo, see above)
+├── sdk/                             # Third-party SDK headers
 │   ├── ASICamera2.h
 │   └── PlayerOneCamera.h
-├── CameraInterface.h           # Abstract camera base class
-├── BaslerCamera.h/.cpp         # Basler Pylon implementation
-├── ZwoCameraInterface.h/.cpp   # ZWO ASI implementation
+├── CameraInterface.h                # Abstract camera base class
+├── BaslerCamera.h/.cpp              # Basler Pylon implementation
+├── ZwoCameraInterface.h/.cpp        # ZWO ASI implementation
 ├── PlayerOneCameraInterface.h/.cpp  # Player One implementation
-├── FrameGrabber.h/.cpp         # Grab loop + SER writer
-├── MainWindow.h/.cpp           # Main UI
-├── PreviewWidget.h/.cpp        # Preview with ROI drag-selection
-├── HistogramWidget.h/.cpp      # Histogram display
-├── SerPlayerDialog.h/.cpp      # Built-in SER file player
-├── SSMReader.h/.cpp            # Airylab SSM serial reader
-├── SeePlot.h/.cpp              # Seeing history plot
-└── Theme.h                     # Qt palette / button styles
+├── FrameGrabber.h/.cpp              # Grab loop + SER writer
+├── MainWindow.h/.cpp                # Main UI
+├── PreviewWidget.h/.cpp             # Preview with ROI drag-selection
+├── HistogramWidget.h/.cpp           # Histogram display
+├── SerPlayerDialog.h/.cpp           # Built-in SER file player
+├── SSMReader.h/.cpp                 # Airylab SSM serial reader
+├── SeePlot.h/.cpp                   # Seeing history plot
+└── Theme.h                          # Qt palette / button styles
 ```
 
 ---
@@ -135,14 +122,13 @@ Input level below 0.5 (no light on photodiode) disables the auto-trigger to avoi
 
 ---
 
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
-Camera SDK libraries and headers are subject to their respective manufacturer licenses.
-
----
-
 ## Disclaimer
 
 This software is provided for **personal, non-commercial use only**, with no warranty of any kind. See [DISCLAIMER.md](DISCLAIMER.md) for full terms, third-party SDK acknowledgements, and license information.
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.  
+Camera SDK libraries and headers are subject to their respective manufacturer licenses.
