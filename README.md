@@ -111,32 +111,7 @@ Recordings are standard SER files (magic: `LUCAM-RECORDER`) compatible with:
 
 ## SSM seeing monitor
 
-The [Airylab SSM](http://www.airylab.fr/ssm-seeing-monitor/) (Stellar Scintillation Monitor) is a device that measures atmospheric seeing in real time using a photodiode and dedicated electronics. It connects to the computer via USB serial.
-
-### Serial settings
-| Parameter | Value |
-|---|---|
-| Baud rate | 115200 |
-| Data bits | 8 |
-| Parity | None |
-| Stop bits | 1 |
-| Flow control | None |
-
-### Protocol
-
-The SSM continuously sends ASCII tokens on the serial line, each terminated by `$`:
-
-```
-A<float>$   — seeing index in arcseconds (e.g. A1.230$)
-B<float>$   — photodiode input level     (e.g. B0.750$)
-C<float>$   — reserved / unused
-```
-
-Tokens arrive in a continuous stream with no fixed packet boundary. The input level (`B`) represents the illumination on the photodiode:
-- **0.5 – 1.0** — valid signal, seeing measurement is reliable
-- **< 0.5** — insufficient light (e.g. no star, cloud passage), seeing value is invalid
-
-When the input level is below 0.5, the auto-trigger is automatically disabled to avoid false recording triggers.
+The [Airylab SSM](http://www.airylab.fr/ssm-seeing-monitor/) (Stellar Scintillation Monitor) is a device that measures atmospheric seeing in real time using a photodiode and dedicated electronics. It connects to the computer via USB serial at 115200 baud.
 
 ---
 
