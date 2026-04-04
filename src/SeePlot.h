@@ -4,8 +4,9 @@
 #include <QVector>
 #include <QPair>
 
-/// Compact scrolling line graph of SSM seeing values.
-/// Black line on light gray background.
+/// Scrolling line graph of SSM seeing values.
+/// Line is green when below threshold, red when above.
+/// Color changes in real time when threshold is adjusted.
 /// Orange dashed line shows the trigger threshold.
 class SeePlot : public QWidget
 {
@@ -16,16 +17,15 @@ public:
     void setThreshold(double arcsec);
     void setYMax(double arcsec);
     void setMaxPoints(int n);
-    /// Set the displayed time window in seconds (0 = show all data)
-    void setTimeRange(int seconds);
+    void setTimeRange(int seconds);  // 0 = show all
 
 protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
-    QVector<QPair<double, double>> m_data;   // (timestamp, seeing)
-    double m_threshold    = 2.0;
-    double m_yMax         = 5.0;
-    int    m_maxPoints    = 3000;  // store up to 50 min at 1 Hz
-    int    m_timeRangeSecs = 0;    // 0 = show all
+    QVector<QPair<double, double>> m_data;
+    double m_threshold     = 2.0;
+    double m_yMax          = 5.0;
+    int    m_maxPoints     = 3000;
+    int    m_timeRangeSecs = 0;
 };

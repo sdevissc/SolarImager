@@ -150,10 +150,16 @@ SerPlayerDialog::~SerPlayerDialog()
 
 // ── File loading ──────────────────────────────────────────────────────────────
 
+void SerPlayerDialog::setDefaultDirectory(const QString &dir)
+{
+    m_defaultDir = dir;
+}
+
 void SerPlayerDialog::onOpenFile()
 {
+    const QString startDir = m_defaultDir.isEmpty() ? QDir::homePath() : m_defaultDir;
     QString path = QFileDialog::getOpenFileName(
-        this, "Open SER file", QString(),
+        this, "Open SER file", startDir,
         "SER files (*.ser);;All files (*.*)");
     if (!path.isEmpty())
         openFile(path);

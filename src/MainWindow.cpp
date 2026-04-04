@@ -6,6 +6,7 @@
 #include "PlayerOneCameraInterface.h"
 #include "PreviewWidget.h"
 #include "SerPlayerDialog.h"
+#include "SettingsDialog.h"
 #include "FrameGrabber.h"
 #include "HistogramWidget.h"
 #include "SSMReader.h"
@@ -34,6 +35,7 @@
 #include <QSpinBox>
 #include <QStatusBar>
 #include <QTimer>
+#include <QTabWidget>
 #include <fitsio.h>
 #include <QVBoxLayout>
 #include <QGridLayout>
@@ -57,7 +59,7 @@ static QPushButton *makeToggleBtn(const QString &text, int w = 0)
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    setWindowTitle("Solar Imaging Console – Basler 1920-155 + Airylab SSM");
+    setWindowTitle("Solar Imaging Console");
     setMinimumSize(1600, 900);
 
     // Camera brand selector — determines which SDK is used on connect
@@ -97,6 +99,7 @@ MainWindow::MainWindow(QWidget *parent)
         m_spinExposure->blockSignals(false);
         if (m_camera) m_camera->setExposure(us);
     });
+
     // ── Gain ──────────────────────────────────────────────────────────────────
     connect(m_spinGain, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, [this](double v) {
@@ -171,7 +174,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_btnSaveDir, &QPushButton::clicked, this, [this] {
         QString dir = QFileDialog::getExistingDirectory(
             this, "Select save directory", m_lblSaveDir->text());
-        if (!dir.isEmpty()) m_lblSaveDir->setText(dir);
+        if (!dir.isEmpty()) {
+            m_lblSaveDir->setText(dir);
+            if (m_serPlayer) m_serPlayer->setDefaultDirectory(dir);
+        }
     });
 
     // ── SSM ───────────────────────────────────────────────────────────────────
@@ -180,6 +186,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_spinSsmThreshold,
             QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, [this](double v) { m_ssmPlot->setThreshold(v); });
+
+    connect(m_comboSsmRange, &QComboBox::currentTextChanged,
+            this, [this](const QString &s) {
+        int secs = 0;
+        if      (s == "1 min")  secs = 60;
+        else if (s == "5 min")  secs = 300;
+        else if (s == "10 min") secs = 600;
+        m_ssmPlot->setTimeRange(secs);
+    });
+    m_ssmPlot->setTimeRange(300);
 
     connect(m_btnSsmLog, &QPushButton::toggled,
             this, [this](bool checked) {
@@ -212,6 +228,12 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::refreshSsmPorts);
     m_ssmPortTimer->start(5000);
     refreshSsmPorts();
+
+    // Load last used profile (Default if none)
+    const QStringList profiles = AppSettings::availableProfiles();
+    if (!profiles.isEmpty())
+        m_settings = AppSettings::load(profiles.contains("Default") ? "Default" : profiles.first());
+    applySettings();
 
     statusBar()->showMessage("Ready – select a camera brand and click Connect");
 }
@@ -262,8 +284,18 @@ void MainWindow::onCameraConnectToggled(bool checked)
 
         bool ok = m_camera->open();
         if (m_camera->isSimulated()) {
-            m_lblCameraInfo->setText("⚠ Simulation mode – no camera found");
-            m_lblCameraInfo->setStyleSheet("color:#b35c00; font-weight:bold;");
+            // Camera not reachable — disconnect cleanly
+            m_camera->close();
+            m_camera->deleteLater();
+            m_camera = nullptr;
+            m_lblCameraInfo->setText("Camera not reachable");
+            m_lblCameraInfo->setStyleSheet("color:#c0392b; font-weight:bold;");
+            m_previewLabel->setText("Camera not reachable\nPlease check connection and try again");
+            m_previewLabel->setStyleSheet("color:#c0392b; font-size:16px; font-weight:bold;");
+            m_previewLabel->setAlignment(Qt::AlignCenter);
+            m_btnConnect->setChecked(false);
+            statusBar()->showMessage("Camera not reachable — please check connection and try again");
+            return;
         } else if (ok) {
             m_lblCameraInfo->setText(m_camera->modelName());
             m_lblCameraInfo->setStyleSheet("color:#1a7a1a; font-weight:bold;");
@@ -339,6 +371,9 @@ void MainWindow::onCameraConnectToggled(bool checked)
         }
         m_lblCameraInfo->setText("Not connected");
         m_lblCameraInfo->setStyleSheet("");
+        m_previewLabel->setText("No camera connected");
+        m_previewLabel->setStyleSheet("color:#aaa; font-size:18px;");
+        m_previewLabel->setAlignment(Qt::AlignCenter);
         m_btnLive->blockSignals(true);
         m_btnLive->setChecked(false);
         m_btnLive->blockSignals(false);
@@ -399,14 +434,22 @@ void MainWindow::onRecordToggled(bool checked)
         if (!name.endsWith(".ser", Qt::CaseInsensitive))
             name += ".ser";
         QString path = dir + "/" + name;
-        // Determine bit depth from current pixel format selection
         const QString fmt = m_comboFormat->currentText();
         const int bitDepth = (fmt == "RAW16" || fmt == "Mono12") ? 16 : 8;
-        m_grabber->startRecording(path, m_spinFrames->value(), bitDepth);
-        m_progressBar->setMaximum(m_spinFrames->value());
+
+        int nFrames = m_spinFrames->value();
+        if (m_comboDuration && m_comboDuration->currentText() == "Seconds") {
+            double fps = (m_fpsAvg > 0) ? m_fpsAvg : 25.0;
+            nFrames = std::max(1, static_cast<int>(m_spinFrames->value() * fps));
+            statusBar()->showMessage(QString("Recording %1 s → %2 frames → %3")
+                                     .arg(m_spinFrames->value()).arg(nFrames).arg(path));
+        } else {
+            statusBar()->showMessage("Recording → " + path);
+        }
+        m_grabber->startRecording(path, nFrames, bitDepth);
+        m_progressBar->setMaximum(nFrames);
         m_progressBar->setValue(0);
         m_progressBar->setVisible(true);
-        statusBar()->showMessage("Recording → " + path);
     } else {
         m_grabber->stopRecording();
         m_progressBar->setVisible(false);
@@ -483,20 +526,23 @@ void MainWindow::onFrameReady(QImage img)
 
     // Apply LUT to a display copy
     QImage display(img.width(), img.height(), QImage::Format_RGB32);
+    const bool satHL = m_btnSatHighlight->isChecked() &&
+                       (palette == "Original" || palette == "Inverted");
+    const QRgb satColor = qRgb(255, 0, 0);
+
     if (img.format() == QImage::Format_Grayscale8) {
         for (int y = 0; y < img.height(); ++y) {
             const uchar *src = img.constScanLine(y);
             QRgb        *dst = reinterpret_cast<QRgb*>(display.scanLine(y));
             for (int x = 0; x < img.width(); ++x)
-                dst[x] = lut[src[x]];
+                dst[x] = (satHL && src[x] == 255) ? satColor : lut[src[x]];
         }
     } else if (img.format() == QImage::Format_Grayscale16) {
-        // Downscale 16→8 for display then apply LUT
         for (int y = 0; y < img.height(); ++y) {
             const uint16_t *src = reinterpret_cast<const uint16_t*>(img.constScanLine(y));
             QRgb           *dst = reinterpret_cast<QRgb*>(display.scanLine(y));
             for (int x = 0; x < img.width(); ++x)
-                dst[x] = lut[src[x] >> 8];
+                dst[x] = (satHL && src[x] == 65535) ? satColor : lut[src[x] >> 8];
         }
     } else {
         // RGB — apply stretch to green channel as luminance proxy, keep color
@@ -537,6 +583,7 @@ void MainWindow::onFrameReady(QImage img)
 
 void MainWindow::onRecordingStats(double fps, double mbps, int framesDone)
 {
+    m_fpsAvg = fps;
     m_lblFps->setText(QString("fps: %1").arg(fps, 0, 'f', 1));
     m_lblMbps->setText(QString("MB/s: %1").arg(mbps, 0, 'f', 1));
     if (m_progressBar->isVisible())
@@ -834,34 +881,138 @@ void MainWindow::buildUi()
 {
     auto *central = new QWidget(this);
     setCentralWidget(central);
-    auto *root = new QHBoxLayout(central);
-    root->setSpacing(6);
+    auto *root = new QVBoxLayout(central);
+    root->setSpacing(4);
     root->setContentsMargins(6, 6, 6, 6);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // LEFT PANEL – camera parameters
+    // GLOBAL TOOLBAR — always visible above tabs
     // ═══════════════════════════════════════════════════════════════════════
+    auto *globalBar = new QHBoxLayout();
+    globalBar->setSpacing(8);
+
+    // ── SSM quick status ─────────────────────────────────────────────────
+    globalBar->addWidget(new QLabel("Seeing:"));
+    m_lblSsmCurrent = new QLabel("—");
+    m_lblSsmCurrent->setStyleSheet("font-weight:bold; font-size:13px; color:#555; min-width:45px;");
+    globalBar->addWidget(m_lblSsmCurrent);
+
+    globalBar->addSpacing(8);
+    globalBar->addWidget(new QLabel("Threshold:"));
+    m_spinSsmThreshold = new QDoubleSpinBox();
+    m_spinSsmThreshold->setRange(0.1, 10.0);
+    m_spinSsmThreshold->setSingleStep(0.1);
+    m_spinSsmThreshold->setDecimals(2);
+    m_spinSsmThreshold->setValue(2.0);
+    m_spinSsmThreshold->setSuffix(" \"");
+    m_spinSsmThreshold->setFixedWidth(80);
+    globalBar->addWidget(m_spinSsmThreshold);
+
+    globalBar->addSpacing(8);
+    globalBar->addWidget(new QLabel("Consec:"));
+    m_spinSsmConsec = new QSpinBox();
+    m_spinSsmConsec->setRange(1, 100);
+    m_spinSsmConsec->setValue(3);
+    m_spinSsmConsec->setFixedWidth(50);
+    m_spinSsmConsec->setToolTip("Consecutive samples below threshold before trigger fires");
+    globalBar->addWidget(m_spinSsmConsec);
+
+    globalBar->addSpacing(8);
+    m_chkSsmTrigger = new QCheckBox("Auto-trigger");
+    m_chkSsmTrigger->setToolTip(
+        "When seeing stays below threshold for N consecutive samples,\n"
+        "automatically start a camera recording.");
+    globalBar->addWidget(m_chkSsmTrigger);
+
+    globalBar->addStretch();
+
+    // Sampling display (read-only, updated by sampling calculator)
+    auto *sepSampling = new QFrame();
+    sepSampling->setFrameShape(QFrame::VLine);
+    sepSampling->setStyleSheet("color:#bbb;");
+    globalBar->addWidget(sepSampling);
+    globalBar->addWidget(new QLabel("Sampling:"));
+    m_lblSampling = new QLabel("—");
+    m_lblSampling->setStyleSheet("font-weight:bold; min-width:60px;");
+    globalBar->addWidget(m_lblSampling);
+    globalBar->addSpacing(8);
+    globalBar->addWidget(new QLabel("S/N:"));
+    m_lblSamplingFactor = new QLabel("—");
+    m_lblSamplingFactor->setStyleSheet("font-weight:bold; min-width:30px;");
+    globalBar->addWidget(m_lblSamplingFactor);
+    globalBar->addSpacing(8);
+
+    // Settings button
+    auto *btnSettings = new QPushButton("⚙  Settings");
+    btnSettings->setFixedHeight(26);
+    btnSettings->setFixedWidth(100);
+    connect(btnSettings, &QPushButton::clicked, this, [this] {
+        SettingsDialog dlg(m_settings, this);
+        if (dlg.exec() == QDialog::Accepted) {
+            m_settings = dlg.settings();
+            applySettings();
+        }
+    });
+    globalBar->addWidget(btnSettings);
+
+    // Separator line below toolbar
+    auto *toolSep = new QFrame();
+    toolSep->setFrameShape(QFrame::HLine);
+    toolSep->setStyleSheet("color:#ccc;");
+
+    root->addLayout(globalBar);
+    root->addWidget(toolSep);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TABS
+    // ═══════════════════════════════════════════════════════════════════════
+    auto *tabs = new QTabWidget();
+    tabs->setDocumentMode(true);
+    root->addWidget(tabs, 1);
+
+    // ── TAB 1: Camera ────────────────────────────────────────────────────
+    auto *cameraTab = new QWidget();
+    auto *cameraLay = new QHBoxLayout(cameraTab);
+    cameraLay->setSpacing(6);
+    cameraLay->setContentsMargins(4, 4, 4, 4);
+
+    // Left panel
     auto *leftPanel = new QVBoxLayout();
     leftPanel->setSpacing(4);
 
-    // Camera connect bar
     auto *camBar = new QHBoxLayout();
     m_comboCameraBrand = new QComboBox();
     m_comboCameraBrand->addItems({"Basler", "ZWO", "Player One"});
     m_comboCameraBrand->setFixedWidth(100);
     camBar->addWidget(m_comboCameraBrand);
     camBar->addSpacing(6);
-    m_btnConnect = makeToggleBtn("Camera Connect");
+    m_btnConnect = new QPushButton("Connect Camera");
+    m_btnConnect->setCheckable(true);
+    m_btnConnect->setFixedHeight(28);
     m_btnConnect->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_btnConnect->setStyleSheet(
+        "QPushButton { background:#27ae60; color:white; font-weight:bold;"
+        " border-radius:4px; padding:2px 8px; }");
+    connect(m_btnConnect, &QPushButton::toggled, this, [this](bool checked) {
+        if (checked) {
+            m_btnConnect->setText("Disconnect Camera");
+            m_btnConnect->setStyleSheet(
+                "QPushButton { background:#c0392b; color:white; font-weight:bold;"
+                " border-radius:4px; padding:2px 8px; }");
+        } else {
+            m_btnConnect->setText("Connect Camera");
+            m_btnConnect->setStyleSheet(
+                "QPushButton { background:#27ae60; color:white; font-weight:bold;"
+                " border-radius:4px; padding:2px 8px; }");
+        }
+    });
     camBar->addWidget(m_btnConnect);
     leftPanel->addLayout(camBar);
 
-    // Scrollable camera controls
     auto *leftScroll = new QScrollArea();
     leftScroll->setWidgetResizable(true);
     leftScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     leftScroll->setFrameShape(QFrame::NoFrame);
-
     auto *leftInner    = new QWidget();
     auto *leftInnerLay = new QVBoxLayout(leftInner);
     leftInnerLay->setSpacing(4);
@@ -870,63 +1021,44 @@ void MainWindow::buildUi()
     leftInnerLay->addWidget(makeExposureGroup());
     leftInnerLay->addWidget(makeOffsetGroup());
     leftInnerLay->addWidget(makeHistogramGroup());
+    leftInnerLay->addWidget(makeSamplingGroup());
     leftInnerLay->addStretch();
-    leftInnerLay->addWidget(makeActionButtons());
     leftScroll->setWidget(leftInner);
     leftPanel->addWidget(leftScroll);
+    cameraLay->addLayout(leftPanel, 2);
 
-    root->addLayout(leftPanel, 2);
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // CENTRE PANEL – preview
-    // ═══════════════════════════════════════════════════════════════════════
+    // Centre: preview
     auto *centre = new QVBoxLayout();
     centre->setSpacing(4);
 
-    // Top toolbar
     auto *topBar = new QHBoxLayout();
     topBar->addWidget(new QLabel("Zoom:"));
     m_comboZoom = new QComboBox();
-    const QStringList zoomLevels = {"Fit","25%","33%","50%","75%","100%",
-                                     "150%","200%","300%","400%"};
-    m_comboZoom->addItems(zoomLevels);
+    m_comboZoom->addItems({"Fit","25%","33%","50%","75%","100%",
+                            "150%","200%","300%","400%"});
     m_comboZoom->setCurrentText("Fit");
     m_comboZoom->setFixedWidth(80);
     topBar->addWidget(m_comboZoom);
-    topBar->addSpacing(16);
+    topBar->addSpacing(8);
     topBar->addWidget(new QLabel("Palette:"));
     m_comboPalette = new QComboBox();
     m_comboPalette->addItems({"Original","Inverted","Rainbow","Red Hot","Cool"});
     m_comboPalette->setFixedWidth(90);
     topBar->addWidget(m_comboPalette);
-    topBar->addSpacing(16);
-    auto *btnPlayer = new QPushButton("▶  Play SER");
-    btnPlayer->setFixedHeight(28);
-    btnPlayer->setFixedWidth(95);
-    btnPlayer->setStyleSheet("padding:2px 6px;");
-    connect(btnPlayer, &QPushButton::clicked, this, [this] {
-        if (!m_serPlayer) {
-            m_serPlayer = new SerPlayerDialog(this);
-            m_serPlayer->setAttribute(Qt::WA_DeleteOnClose);
-            connect(m_serPlayer, &QObject::destroyed,
-                    this, [this] { m_serPlayer = nullptr; });
-        }
-        m_serPlayer->show();
-        m_serPlayer->raise();
-        m_serPlayer->activateWindow();
-    });
-    topBar->addWidget(btnPlayer);
-    // Live view starts automatically on connect — kept for internal state only
+    topBar->addSpacing(8);
+    m_btnSatHighlight = new QCheckBox("Highlight sat. pixels");
+    m_btnSatHighlight->setToolTip("Mark saturated pixels in red (Original/Inverted palettes only)");
+    topBar->addWidget(m_btnSatHighlight);
+    topBar->addSpacing(8);
     m_btnLive = new QPushButton();
     m_btnLive->setVisible(false);
     m_btnLive->setCheckable(true);
     topBar->addStretch();
     centre->addLayout(topBar);
 
-    // Preview scroll area (camera image goes here in Phase 2)
     m_scrollArea = new QScrollArea();
     m_scrollArea->setAlignment(Qt::AlignCenter);
-    m_scrollArea->setStyleSheet("background:#1c1c1c; border:1px solid #bbb;");
+    m_scrollArea->setStyleSheet("background:#707070; border:1px solid #bbb;");
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_previewLabel = new PreviewWidget();
@@ -935,15 +1067,23 @@ void MainWindow::buildUi()
     m_previewLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     m_previewLabel->setText("No camera connected");
     m_scrollArea->setWidget(m_previewLabel);
-    centre->addWidget(m_scrollArea);
+    centre->addWidget(m_scrollArea, 1);
 
-    root->addLayout(centre, 5);
+    m_progressBar = new QProgressBar();
+    m_progressBar->setVisible(false);
+    centre->addWidget(m_progressBar);
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // RIGHT PANEL – SSM
-    // ═══════════════════════════════════════════════════════════════════════
-    auto *rightPanel = new QVBoxLayout();
-    rightPanel->setSpacing(4);
+    cameraLay->addLayout(centre, 5);
+    tabs->addTab(cameraTab, "📷  Camera");
+
+    // ── TAB 2: SSM ───────────────────────────────────────────────────────
+    auto *ssmTab = new QWidget();
+    auto *ssmTabLay = new QHBoxLayout(ssmTab);
+    ssmTabLay->setSpacing(6);
+    ssmTabLay->setContentsMargins(4, 4, 4, 4);
+
+    auto *ssmPanel = new QVBoxLayout();
+    ssmPanel->setSpacing(4);
 
     // SSM connection row
     auto *ssmBar = new QHBoxLayout();
@@ -962,13 +1102,18 @@ void MainWindow::buildUi()
     m_btnSsm = makeToggleBtn("SSM Connect");
     ssmBar->addWidget(m_btnSsm);
     ssmBar->addStretch();
-    rightPanel->addLayout(ssmBar);
+    ssmPanel->addLayout(ssmBar);
 
-    rightPanel->addWidget(makeSsmGroup());
-    rightPanel->addWidget(makeSamplingGroup());
-    rightPanel->addStretch();
+    ssmPanel->addWidget(makeSsmGroup());
+    ssmPanel->addStretch();
+    ssmTabLay->addLayout(ssmPanel);
 
-    root->addLayout(rightPanel, 1);
+    tabs->addTab(ssmTab, "📈  SSM");
+
+    // ── TAB 3: SER Player ────────────────────────────────────────────────
+    m_serPlayer = new SerPlayerDialog();
+    m_serPlayer->setWindowFlags(Qt::Widget);  // embed as widget not dialog
+    tabs->addTab(m_serPlayer, "▶  SER Player");
 
     // ── Status bar ────────────────────────────────────────────────────────
     auto *sb = new QStatusBar(this);
@@ -990,6 +1135,32 @@ void MainWindow::buildUi()
 }
 
 // ── Left panel group factories ────────────────────────────────────────────────
+
+void MainWindow::applySettings()
+{
+    // Telescope / sampling calculator
+    if (m_spinDiameter)    m_spinDiameter->setValue(m_settings.telDiameter);
+    if (m_spinFocalLength) m_spinFocalLength->setValue(m_settings.telFocalLength);
+    if (m_spinPixelSize)   m_spinPixelSize->setValue(m_settings.camPixelSize);
+    if (m_spinWavelength)  m_spinWavelength->setValue(m_settings.camWavelength);
+
+    // Display
+    if (m_comboPalette) m_comboPalette->setCurrentText(m_settings.displayPalette);
+    if (m_comboZoom)    m_comboZoom->setCurrentText(m_settings.displayZoom);
+
+    // Recording
+    if (!m_settings.recDirectory.isEmpty() && m_lblSaveDir) {
+        m_lblSaveDir->setText(m_settings.recDirectory);
+        if (m_serPlayer) m_serPlayer->setDefaultDirectory(m_settings.recDirectory);
+    }
+    if (m_spinFrames)    m_spinFrames->setValue(m_settings.recDuration);
+    if (m_comboDuration) m_comboDuration->setCurrentText(m_settings.recDurationMode);
+
+    // SSM
+    if (m_spinSsmThreshold) m_spinSsmThreshold->setValue(m_settings.ssmThreshold);
+    if (m_spinSsmConsec)    m_spinSsmConsec->setValue(m_settings.ssmConsec);
+    if (m_comboSsmBaud)     m_comboSsmBaud->setCurrentText(m_settings.ssmBaud);
+}
 
 QGroupBox *MainWindow::makeCameraInfoGroup()
 {
@@ -1046,24 +1217,27 @@ QGroupBox *MainWindow::makeExposureGroup()
     sep->setStyleSheet("color:#bbb;");
     lay->addWidget(sep, 3, 0, 1, 3);
 
-    // ── Frames row ───────────────────────────────────────────────────────────
-    lay->addWidget(new QLabel("Frames:"), 4, 0);
+    // ── Duration row ─────────────────────────────────────────────────────────
+    lay->addWidget(new QLabel("Duration:"), 4, 0);
     m_spinFrames = new QSpinBox();
     m_spinFrames->setRange(1, 100000);
     m_spinFrames->setValue(100);
-    lay->addWidget(m_spinFrames, 4, 1, 1, 2);
+    lay->addWidget(m_spinFrames, 4, 1);
+    m_comboDuration = new QComboBox();
+    m_comboDuration->addItems({"Frames", "Seconds"});
+    m_comboDuration->setFixedWidth(75);
+    lay->addWidget(m_comboDuration, 4, 2);
 
-    // ── File name row ─────────────────────────────────────────────────────────
+    // ── File name ─────────────────────────────────────────────────────────────
     lay->addWidget(new QLabel("File name:"), 5, 0);
     m_txtFilename = new QLineEdit();
     m_txtFilename->setPlaceholderText("Leave empty for auto timestamp");
     lay->addWidget(m_txtFilename, 5, 1, 1, 2);
 
-    // ── Directory row ─────────────────────────────────────────────────────────
+    // ── Directory ─────────────────────────────────────────────────────────────
     lay->addWidget(new QLabel("Directory:"), 6, 0);
     m_btnSaveDir = new QPushButton("Browse…");
     lay->addWidget(m_btnSaveDir, 6, 1, 1, 2);
-
     m_lblSaveDir = new QLabel(QDir::homePath());
     m_lblSaveDir->setStyleSheet("color:#555; font-size:11px;");
     m_lblSaveDir->setWordWrap(true);
@@ -1071,7 +1245,26 @@ QGroupBox *MainWindow::makeExposureGroup()
 
     // ── Record + Snap buttons ─────────────────────────────────────────────────
     auto *recRow = new QHBoxLayout();
-    m_btnRecord = makeToggleBtn("⏺  Record", 110);
+    m_btnRecord = new QPushButton("▶  Record");
+    m_btnRecord->setCheckable(true);
+    m_btnRecord->setFixedHeight(28);
+    m_btnRecord->setFixedWidth(110);
+    m_btnRecord->setStyleSheet(
+        "QPushButton { background:#27ae60; color:white; font-weight:bold;"
+        " border-radius:4px; padding:2px 8px; }");
+    connect(m_btnRecord, &QPushButton::toggled, this, [this](bool checked) {
+        if (checked) {
+            m_btnRecord->setText("■  Stop");
+            m_btnRecord->setStyleSheet(
+                "QPushButton { background:#c0392b; color:white; font-weight:bold;"
+                " border-radius:4px; padding:2px 8px; }");
+        } else {
+            m_btnRecord->setText("▶  Record");
+            m_btnRecord->setStyleSheet(
+                "QPushButton { background:#27ae60; color:white; font-weight:bold;"
+                " border-radius:4px; padding:2px 8px; }");
+        }
+    });
     recRow->addWidget(m_btnRecord);
     auto *btnSnap = new QPushButton("📷  Snap");
     btnSnap->setFixedHeight(28);
@@ -1135,6 +1328,34 @@ QGroupBox *MainWindow::makeOffsetGroup()
     return grp;
 }
 
+QGroupBox *MainWindow::makeRecordingGroup()
+{
+    auto *grp = new QGroupBox("Recording");
+    auto *lay = new QGridLayout(grp);
+    lay->setVerticalSpacing(6);
+
+    lay->addWidget(new QLabel("Frames:"), 0, 0);
+    m_spinFrames = new QSpinBox();
+    m_spinFrames->setRange(1, 100000);
+    m_spinFrames->setValue(100);
+    lay->addWidget(m_spinFrames, 0, 1);
+
+    lay->addWidget(new QLabel("File name:"), 1, 0);
+    m_txtFilename = new QLineEdit();
+    m_txtFilename->setPlaceholderText("Leave empty for auto timestamp");
+    lay->addWidget(m_txtFilename, 1, 1);
+
+    lay->addWidget(new QLabel("Directory:"), 2, 0);
+    m_btnSaveDir = new QPushButton("Browse…");
+    lay->addWidget(m_btnSaveDir, 2, 1);
+
+    m_lblSaveDir = new QLabel(QDir::homePath());
+    m_lblSaveDir->setStyleSheet("color:#555; font-size:11px;");
+    m_lblSaveDir->setWordWrap(true);
+    lay->addWidget(m_lblSaveDir, 3, 0, 1, 2);
+    return grp;
+}
+
 QGroupBox *MainWindow::makeHistogramGroup()
 {
     auto *grp = new QGroupBox("Histogram");
@@ -1181,7 +1402,6 @@ QWidget *MainWindow::makeActionButtons()
     auto *w   = new QWidget();
     auto *lay = new QVBoxLayout(w);
     lay->setSpacing(6);
-    // placeholder for future action buttons
     return w;
 }
 
@@ -1204,7 +1424,6 @@ QGroupBox *MainWindow::makeSamplingGroup()
         return s;
     };
 
-    // Row 0: D | F
     lay->addWidget(new QLabel("D:"),           0, 0);
     m_spinDiameter    = makeSpin(10, 2000, 200, 10, 0, " mm");
     lay->addWidget(m_spinDiameter,             0, 1);
@@ -1212,7 +1431,6 @@ QGroupBox *MainWindow::makeSamplingGroup()
     m_spinFocalLength = makeSpin(100, 20000, 3000, 100, 0, " mm");
     lay->addWidget(m_spinFocalLength,          0, 3);
 
-    // Row 1: PixSize | λ
     lay->addWidget(new QLabel("Pix:"),         1, 0);
     m_spinPixelSize   = makeSpin(1.0, 30.0, 2.9, 0.1, 2, " µm");
     lay->addWidget(m_spinPixelSize,            1, 1);
@@ -1220,49 +1438,32 @@ QGroupBox *MainWindow::makeSamplingGroup()
     m_spinWavelength  = makeSpin(300, 1100, 550, 10, 0, " nm");
     lay->addWidget(m_spinWavelength,           1, 3);
 
-    // Results
     auto *sep = new QFrame();
     sep->setFrameShape(QFrame::HLine);
     sep->setStyleSheet("color:#bbb;");
     lay->addWidget(sep, 2, 0, 1, 4);
 
-    lay->addWidget(new QLabel("Sampling:"),   3, 0, 1, 2);
-    m_lblSampling = new QLabel("—");
-    m_lblSampling->setStyleSheet("font-weight:bold;");
-    lay->addWidget(m_lblSampling,             3, 2, 1, 2);
-
-    lay->addWidget(new QLabel("S/N factor:"), 4, 0, 1, 2);
-    m_lblSamplingFactor = new QLabel("—");
-    m_lblSamplingFactor->setStyleSheet("font-weight:bold;");
-    lay->addWidget(m_lblSamplingFactor,       4, 2, 1, 2);
+    auto *resultNote = new QLabel("Results shown in toolbar");
+    resultNote->setStyleSheet("color:#555; font-size:9px; font-style:italic;");
+    lay->addWidget(resultNote, 3, 0, 1, 4);
 
     auto *hint = new QLabel("Shannon-Nyquist: >3 good, 2–3 ok, <2 undersampled");
     hint->setStyleSheet("color:#555; font-size:9px; font-style:italic;");
     hint->setWordWrap(true);
-    lay->addWidget(hint, 5, 0, 1, 4);
+    lay->addWidget(hint, 4, 0, 1, 4);
 
     auto calc = [this]() {
         const double D   = m_spinDiameter->value();
         const double F   = m_spinFocalLength->value();
         const double pix = m_spinPixelSize->value();
         const double lam = m_spinWavelength->value();
-
-        const double pixMm      = pix / 1000.0;
-        const double sampling   = 206265.0 * pixMm / F;
-        const double lamMm      = lam / 1e6;
-        const double resolution = 1.22 * lamMm / D * 206265.0;
+        const double sampling   = 206265.0 * (pix / 1000.0) / F;
+        const double resolution = 1.22 * (lam / 1e6) / D * 206265.0;
         const double factor     = resolution / sampling;
-
         m_lblSampling->setText(QString("%1 \"/px").arg(sampling, 0, 'f', 3));
-
-        QString col;
-        if      (factor >= 3.0) col = "#1a7a1a";
-        else if (factor >= 2.0) col = "#b35c00";
-        else                    col = "#c0392b";
-
+        QString col = (factor >= 3.0) ? "#1a7a1a" : (factor >= 2.0) ? "#b35c00" : "#c0392b";
         m_lblSamplingFactor->setText(QString("%1").arg(factor, 0, 'f', 2));
-        m_lblSamplingFactor->setStyleSheet(
-            QString("font-weight:bold; color:%1;").arg(col));
+        m_lblSamplingFactor->setStyleSheet(QString("font-weight:bold; color:%1;").arg(col));
     };
 
     auto recalc = [calc](double) { calc(); };
@@ -1270,7 +1471,6 @@ QGroupBox *MainWindow::makeSamplingGroup()
     connect(m_spinFocalLength, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, recalc);
     connect(m_spinPixelSize,   QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, recalc);
     connect(m_spinWavelength,  QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, recalc);
-
     calc();
     return grp;
 }
@@ -1305,38 +1505,19 @@ QGroupBox *MainWindow::makeSsmGroup()
     statsGrid->addWidget(m_lblSsmMean, 0, 3);
     outer->addLayout(statsGrid);
 
-    // Plot placeholder — replaced by SeePlot in Phase 6
+    // Time range selector
+    auto *rangeRow = new QHBoxLayout();
+    rangeRow->addWidget(new QLabel("Time range:"));
+    m_comboSsmRange = new QComboBox();
+    m_comboSsmRange->addItems({"1 min", "5 min", "10 min", "All"});
+    m_comboSsmRange->setCurrentText("5 min");
+    m_comboSsmRange->setFixedWidth(75);
+    rangeRow->addWidget(m_comboSsmRange);
+    rangeRow->addStretch();
+    outer->addLayout(rangeRow);
+
     m_ssmPlot = new SeePlot();
     outer->addWidget(m_ssmPlot);
-
-    // Trigger controls
-    auto *trigRow = new QHBoxLayout();
-    trigRow->addWidget(new QLabel("Threshold:"));
-    m_spinSsmThreshold = new QDoubleSpinBox();
-    m_spinSsmThreshold->setRange(0.1, 10.0);
-    m_spinSsmThreshold->setSingleStep(0.1);
-    m_spinSsmThreshold->setDecimals(2);
-    m_spinSsmThreshold->setValue(2.0);
-    m_spinSsmThreshold->setSuffix(" \"");
-    m_spinSsmThreshold->setFixedWidth(80);
-    trigRow->addWidget(m_spinSsmThreshold);
-    trigRow->addSpacing(8);
-    trigRow->addWidget(new QLabel("Consec:"));
-    m_spinSsmConsec = new QSpinBox();
-    m_spinSsmConsec->setRange(1, 100);
-    m_spinSsmConsec->setValue(3);
-    m_spinSsmConsec->setFixedWidth(55);
-    m_spinSsmConsec->setToolTip(
-        "Consecutive samples below threshold before trigger fires");
-    trigRow->addWidget(m_spinSsmConsec);
-    trigRow->addStretch();
-    outer->addLayout(trigRow);
-
-    m_chkSsmTrigger = new QCheckBox("Auto-trigger recording");
-    m_chkSsmTrigger->setToolTip(
-        "When seeing stays below threshold for N consecutive samples,\n"
-        "automatically start a camera recording.");
-    outer->addWidget(m_chkSsmTrigger);
 
     m_lblSsmTrigger = new QLabel("Trigger: idle");
     m_lblSsmTrigger->setStyleSheet("color:#555; font-size:10px;");

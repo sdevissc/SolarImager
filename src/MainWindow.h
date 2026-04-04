@@ -5,8 +5,10 @@
 #include <QStringList>
 #include <QFile>
 #include <QTextStream>
+#include "AppSettings.h"
 
 class QScrollArea;
+class QTabWidget;
 class QLabel;
 class PreviewWidget;
 class QPushButton;
@@ -45,11 +47,13 @@ protected:
 private:
     // ── UI construction ──────────────────────────────────────────────────────
     void buildUi();
+    void applySettings();
 
     // ── Left panel (camera controls) ────────────────────────────────────────
     QGroupBox *makeCameraInfoGroup();
-    QGroupBox *makeExposureGroup();   // merged: Acquisition + Recording
+    QGroupBox *makeExposureGroup();   // merged: Exposure + Gain + Pixel Format
     QGroupBox *makeOffsetGroup();
+    QGroupBox *makeRecordingGroup();
     QGroupBox *makeHistogramGroup();
     QGroupBox *makeSamplingGroup();
     QWidget   *makeActionButtons();
@@ -84,6 +88,7 @@ private:
     // Top-bar / centre
     QComboBox    *m_comboZoom      = nullptr;
     QComboBox    *m_comboPalette   = nullptr;
+    QCheckBox    *m_btnSatHighlight = nullptr;
     QPushButton  *m_btnLive        = nullptr;
     QPushButton  *m_btnRecord      = nullptr;
     QScrollArea  *m_scrollArea     = nullptr;
@@ -129,10 +134,6 @@ private:
     QLabel  *m_lblBlack    = nullptr;
     QLabel  *m_lblWhite    = nullptr;
 
-    // Status bar
-    QLabel *m_lblFps  = nullptr;
-    QLabel *m_lblMbps = nullptr;
-
     // Sampling calculator
     QDoubleSpinBox *m_spinDiameter      = nullptr;
     QDoubleSpinBox *m_spinFocalLength   = nullptr;
@@ -140,6 +141,17 @@ private:
     QDoubleSpinBox *m_spinWavelength    = nullptr;
     QLabel         *m_lblSampling       = nullptr;
     QLabel         *m_lblSamplingFactor = nullptr;
+
+    // SSM time range
+    QComboBox      *m_comboSsmRange     = nullptr;
+
+    // Duration mode and fps tracking
+    QComboBox      *m_comboDuration     = nullptr;
+    double          m_fpsAvg            = -1.0;
+
+    // Status bar
+    QLabel *m_lblFps  = nullptr;
+    QLabel *m_lblMbps = nullptr;
 
     // SSM panel
     QComboBox   *m_comboSsmPort  = nullptr;
@@ -159,6 +171,7 @@ private:
     QPlainTextEdit *m_txtSsmRaw        = nullptr;
 
     // ── Backend objects ───────────────────────────────────────────────────────
+    AppSettings      m_settings;
     CameraInterface *m_camera        = nullptr;
     FrameGrabber    *m_grabber       = nullptr;
     SSMReader       *m_ssmReader     = nullptr;

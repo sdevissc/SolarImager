@@ -74,6 +74,8 @@ set(SOURCES
     src/SeePlot.cpp
     src/PreviewWidget.cpp
     src/SerPlayerDialog.cpp
+    src/AppSettings.cpp
+    src/SettingsDialog.cpp
 )
 
 set(HEADERS
@@ -89,6 +91,8 @@ set(HEADERS
     src/Theme.h
     src/PreviewWidget.h
     src/SerPlayerDialog.h
+    src/AppSettings.h
+    src/SettingsDialog.h
 )
 
 set_source_files_properties(

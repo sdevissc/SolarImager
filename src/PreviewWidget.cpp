@@ -121,18 +121,11 @@ void PreviewWidget::paintEvent(QPaintEvent *e)
 
     QPainter p(this);
 
-    // Draw the rubber band while dragging
+    // Draw the rubber band while dragging only
     if (m_dragging) {
         QRect r = QRect(m_dragStart, m_dragCurrent).normalized();
         p.setPen(QPen(QColor(255, 200, 0), 1, Qt::DashLine));
         p.setBrush(QColor(255, 200, 0, 30));
         p.drawRect(r);
-    }
-
-    // Draw the committed ROI overlay
-    if (!m_roiOverlay.isNull() && !m_dragging) {
-        p.setPen(QPen(QColor(255, 80, 80), 2, Qt::SolidLine));
-        p.setBrush(Qt::NoBrush);
-        p.drawRect(m_roiOverlay);
     }
 }

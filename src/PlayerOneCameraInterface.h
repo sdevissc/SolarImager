@@ -55,6 +55,7 @@ private:
     Caps            m_caps;
     QString         m_modelName;
     mutable QMutex  m_mutex;
+    mutable QMutex  m_grabMutex;  ///< held during POAGetImageData, prevents close() racing
     int             m_simFrame  = 0;
 
     // Current ROI / format state (PO SDK requires full params on every ROI call)

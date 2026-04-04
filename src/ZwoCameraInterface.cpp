@@ -277,7 +277,7 @@ QImage ZwoCamera::grabFrame()
             m_cameraId,
             reinterpret_cast<unsigned char*>(buf.data()),
             bufSize,
-            100);
+            50);
         grabLock.relock();
         if (err != ASI_ERROR_TIMEOUT) break;
     }

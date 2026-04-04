@@ -22,6 +22,8 @@ public:
 
     /// Open a SER file directly (called from main window with last recording path)
     void openFile(const QString &path);
+    /// Set the default directory for the open file dialog
+    void setDefaultDirectory(const QString &dir);
 
 protected:
     void keyPressEvent(QKeyEvent *e) override;
@@ -40,6 +42,7 @@ private:
 
     // ── File state ────────────────────────────────────────────────────────────
     QFile    m_file;
+    QString  m_defaultDir;  ///< Default directory for open dialog
     int      m_frameCount  = 0;
     int      m_width       = 0;
     int      m_height      = 0;

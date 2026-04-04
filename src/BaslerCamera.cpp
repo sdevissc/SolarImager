@@ -281,14 +281,21 @@ QImage BaslerCamera::grabFrame()
 
     try {
         CGrabResultPtr result;
-        m_camera->RetrieveResult(5000, result, TimeoutHandling_ThrowException);
-
-        if (!result->GrabSucceeded()) {
-            emit errorOccurred(QString("Grab failed: %1")
-                               .arg(QString(result->GetErrorDescription())));
-            return {};
+        // Poll with short timeout so pending ROI/stop requests are
+        // processed quickly (max ~50ms delay instead of up to 5s)
+        while (m_grabbing) {
+            if (m_camera->RetrieveResult(50, result,
+                                         TimeoutHandling_Return)) {
+                if (!result->GrabSucceeded()) {
+                    emit errorOccurred(QString("Grab failed: %1")
+                                       .arg(QString(result->GetErrorDescription())));
+                    return {};
+                }
+                return pylonResultToQImage(result);
+            }
+            // 50ms timeout — loop and check m_grabbing again
         }
-        return pylonResultToQImage(result);
+        return {};
 
     } catch (const GenericException &e) {
         emit errorOccurred(QString("grabFrame exception: %1")

@@ -93,6 +93,7 @@ void PlayerOneCamera::close()
     stopGrabbing();
 
     if (!m_simulated && m_cameraId >= 0) {
+        QMutexLocker grabLock(&m_grabMutex);
         POACloseCamera(m_cameraId);
         m_cameraId = -1;
     }
@@ -274,16 +275,27 @@ QImage PlayerOneCamera::grabFrame()
     const int bufSize = m_roiW * m_roiH * bpp;
     QByteArray buf(bufSize, 0);
 
-    // Poll for a ready frame with a 2-second timeout
-    POAErrors err = POAGetImageData(
-        m_cameraId,
-        reinterpret_cast<unsigned char*>(buf.data()),
-        bufSize,
-        2000);
+    // Hold m_grabMutex so close() waits for this to finish before POACloseCamera
+    QMutexLocker grabLock(&m_grabMutex);
+
+    // Poll with short timeout so pending ROI/stop requests are processed quickly
+    POAErrors err = POA_ERROR_TIMEOUT;
+    while (m_open && m_grabbing) {
+        grabLock.unlock();
+        err = POAGetImageData(
+            m_cameraId,
+            reinterpret_cast<unsigned char*>(buf.data()),
+            bufSize,
+            50);
+        grabLock.relock();
+        // Timeout and EXPOSING are normal transient conditions — keep polling
+        if (err != POA_ERROR_TIMEOUT && err != POA_ERROR_EXPOSING) break;
+    }
+
+    if (!m_open || !m_grabbing) return {};
 
     if (err != POA_OK) {
-        if (err != POA_ERROR_TIMEOUT)
-            emit errorOccurred(QString("POAGetImageData error: %1").arg(err));
+        emit errorOccurred(QString("POAGetImageData error: %1").arg(err));
         return {};
     }
 
