@@ -74,9 +74,9 @@ A thin **global toolbar** sits above the three tabs, always visible, showing:
 - Linear/log Y axis toggle
 - Black and white point sliders (display only — recorded data is always raw)
 
-**Left panel — Sampling calculator**
-- Inputs: aperture D (mm), focal length F (mm), pixel size (µm), wavelength λ (nm)
-- Results shown live in the global toolbar: arcsec/pixel and S/N factor (green ≥ 3, orange 2–3, red < 2)
+**Global toolbar — Sampling results**
+- Telescope and camera parameters (aperture, focal length, pixel size, wavelength) are defined once in the **Settings dialog**
+- Computed results are always visible in the toolbar: arcsec/pixel and S/N factor (green ≥ 3, orange 2–3, red < 2)
 
 **Preview area**
 - Zoom: Fit to viewport, 25% to 400%
