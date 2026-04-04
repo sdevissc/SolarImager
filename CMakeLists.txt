@@ -125,3 +125,19 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+# ── Desktop integration ───────────────────────────────────────────────────────
+install(FILES     "${CMAKE_SOURCE_DIR}/solar-imager.desktop"
+        DESTINATION share/applications)
+install(FILES     "${CMAKE_SOURCE_DIR}/solar-imager.svg"
+        DESTINATION share/icons/hicolor/scalable/apps)
+
+# Refresh icon and desktop caches after install
+install(CODE "
+    execute_process(COMMAND gtk-update-icon-cache -f -t
+        \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/share/icons/hicolor\"
+        RESULT_VARIABLE _rc ERROR_QUIET)
+    execute_process(COMMAND update-desktop-database
+        \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/share/applications\"
+        RESULT_VARIABLE _rc ERROR_QUIET)
+")
