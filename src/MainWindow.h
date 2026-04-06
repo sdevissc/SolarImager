@@ -8,6 +8,7 @@
 #include "AppSettings.h"
 
 class QScrollArea;
+class QScrollBar;
 class QTabWidget;
 class QLabel;
 class PreviewWidget;
@@ -30,9 +31,6 @@ class SSMReader;
 class SeePlot;
 class SerPlayerDialog;
 
-/// Main application window.
-/// Phase 1: empty shell with correct 3-column layout and status bar.
-/// Subsequent phases will populate each panel with real widgets.
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -49,20 +47,14 @@ private:
     void buildUi();
     void applySettings();
 
-    // ── Left panel (camera controls) ────────────────────────────────────────
+    // ── Panel factories ──────────────────────────────────────────────────────
     QGroupBox *makeCameraInfoGroup();
-    QGroupBox *makeExposureGroup();   // merged: Exposure + Gain + Pixel Format
+    QGroupBox *makeExposureGroup();
     QGroupBox *makeOffsetGroup();
-    QGroupBox *makeRecordingGroup();
     QGroupBox *makeHistogramGroup();
     QGroupBox *makeSamplingGroup();
-    QWidget   *makeActionButtons();
-
-    // ── Centre panel (preview) ───────────────────────────────────────────────
-    // (populated in Phase 2)
-
-    // ── Right panel (SSM) ────────────────────────────────────────────────────
     QGroupBox *makeSsmGroup();
+    QWidget   *makeActionButtons();
 
     // ── Camera slots ─────────────────────────────────────────────────────────
     void onCameraConnectToggled(bool checked);
@@ -85,56 +77,51 @@ private:
 
     // ── Widgets ──────────────────────────────────────────────────────────────
 
-    // Top-bar / centre
-    QComboBox    *m_comboZoom      = nullptr;
-    QComboBox    *m_comboPalette   = nullptr;
+    // Preview toolbar
+    QComboBox    *m_comboZoom       = nullptr;
+    QComboBox    *m_comboPalette    = nullptr;
     QCheckBox    *m_btnSatHighlight = nullptr;
-    QPushButton  *m_btnLive        = nullptr;
-    QPushButton  *m_btnRecord      = nullptr;
-    QScrollArea  *m_scrollArea     = nullptr;
-    PreviewWidget *m_previewLabel  = nullptr;
-    QProgressBar *m_progressBar    = nullptr;
+    QPushButton  *m_btnLive         = nullptr;  // hidden, internal state only
+    QPushButton  *m_btnRecord       = nullptr;
+    QScrollArea  *m_scrollArea      = nullptr;
+    PreviewWidget *m_previewLabel   = nullptr;
+    QProgressBar *m_progressBar     = nullptr;
 
-    // Left panel
-    QPushButton  *m_btnConnect     = nullptr;
+    // Left panel — camera
+    QPushButton  *m_btnConnect      = nullptr;
     QComboBox    *m_comboCameraBrand = nullptr;
-    QLabel       *m_lblCameraInfo  = nullptr;
+    QLabel       *m_lblCameraInfo   = nullptr;
 
-    // Exposure
+    // Exposure / Gain
     QDoubleSpinBox *m_spinExposure   = nullptr;
     QSlider        *m_sliderExposure = nullptr;
-
-    // Gain
-    QDoubleSpinBox *m_spinGain     = nullptr;
-    QSlider        *m_sliderGain   = nullptr;
+    QDoubleSpinBox *m_spinGain       = nullptr;
+    QSlider        *m_sliderGain     = nullptr;
 
     // ROI / Offset
-    QSpinBox *m_spinOffsetX  = nullptr;
-    QSpinBox *m_spinOffsetY  = nullptr;
-    QSpinBox *m_spinWidth    = nullptr;
-    QSpinBox *m_spinHeight   = nullptr;
-    QPushButton *m_btnClearRoi = nullptr;
+    QSpinBox    *m_spinOffsetX  = nullptr;
+    QSpinBox    *m_spinOffsetY  = nullptr;
+    QSpinBox    *m_spinWidth    = nullptr;
+    QSpinBox    *m_spinHeight   = nullptr;
+    QPushButton *m_btnClearRoi  = nullptr;
 
-    // Format
-    QComboBox *m_comboFormat = nullptr;
+    // Format + Recording
+    QComboBox   *m_comboFormat   = nullptr;
+    QSpinBox    *m_spinFrames    = nullptr;
+    QComboBox   *m_comboDuration = nullptr;
+    QLineEdit   *m_txtFilename   = nullptr;
+    QLabel      *m_lblSaveDir    = nullptr;
+    QPushButton *m_btnSaveDir    = nullptr;
 
-    // Recording
-    QSpinBox  *m_spinFrames   = nullptr;
-    QLineEdit *m_txtFilename  = nullptr;
-    QLabel    *m_lblSaveDir   = nullptr;
-    QPushButton *m_btnSaveDir = nullptr;
-
-    // Histogram
+    // Histogram + display levels
     HistogramWidget *m_histogramWidget = nullptr;
     QCheckBox       *m_chkHistLog      = nullptr;
+    QSlider         *m_sliderBlack     = nullptr;
+    QSlider         *m_sliderWhite     = nullptr;
+    QLabel          *m_lblBlack        = nullptr;
+    QLabel          *m_lblWhite        = nullptr;
 
-    // Display levels
-    QSlider *m_sliderBlack = nullptr;
-    QSlider *m_sliderWhite = nullptr;
-    QLabel  *m_lblBlack    = nullptr;
-    QLabel  *m_lblWhite    = nullptr;
-
-    // Sampling calculator
+    // Sampling calculator (inputs from settings, results in toolbar)
     QDoubleSpinBox *m_spinDiameter      = nullptr;
     QDoubleSpinBox *m_spinFocalLength   = nullptr;
     QDoubleSpinBox *m_spinPixelSize     = nullptr;
@@ -142,33 +129,31 @@ private:
     QLabel         *m_lblSampling       = nullptr;
     QLabel         *m_lblSamplingFactor = nullptr;
 
-    // SSM time range
-    QComboBox      *m_comboSsmRange     = nullptr;
-
-    // Duration mode and fps tracking
-    QComboBox      *m_comboDuration     = nullptr;
-    double          m_fpsAvg            = -1.0;
-
     // Status bar
-    QLabel *m_lblFps  = nullptr;
-    QLabel *m_lblMbps = nullptr;
+    QLabel  *m_lblMem  = nullptr;
+    QLabel  *m_lblFps  = nullptr;
+    QLabel  *m_lblMbps = nullptr;
+    double   m_fpsAvg  = -1.0;
 
-    // SSM panel
-    QComboBox   *m_comboSsmPort  = nullptr;
-    QComboBox   *m_comboSsmBaud  = nullptr;
-    QPushButton *m_btnSsm        = nullptr;
-    QLabel      *m_lblSsmCurrent = nullptr;
-    QLabel      *m_lblSsmInput   = nullptr;
-    QLabel      *m_lblSsmMean    = nullptr;
-    SeePlot     *m_ssmPlot       = nullptr;
+    // Global toolbar — SSM quick controls
+    QLabel         *m_lblSsmCurrent    = nullptr;
     QDoubleSpinBox *m_spinSsmThreshold = nullptr;
     QSpinBox       *m_spinSsmConsec    = nullptr;
     QCheckBox      *m_chkSsmTrigger    = nullptr;
-    QLabel         *m_lblSsmTrigger    = nullptr;
-    QPushButton    *m_btnSsmLog        = nullptr;
-    QLabel         *m_lblSsmLogPath    = nullptr;
-    QCheckBox      *m_chkSsmRaw        = nullptr;
-    QPlainTextEdit *m_txtSsmRaw        = nullptr;
+
+    // SSM tab panel
+    QComboBox      *m_comboSsmPort   = nullptr;
+    QComboBox      *m_comboSsmBaud   = nullptr;
+    QPushButton    *m_btnSsm         = nullptr;
+    QLabel         *m_lblSsmInput    = nullptr;
+    QLabel         *m_lblSsmMean     = nullptr;
+    SeePlot        *m_ssmPlot        = nullptr;
+    QComboBox      *m_comboSsmRange  = nullptr;
+    QLabel         *m_lblSsmTrigger  = nullptr;
+    QPushButton    *m_btnSsmLog      = nullptr;
+    QLabel         *m_lblSsmLogPath  = nullptr;
+    QCheckBox      *m_chkSsmRaw      = nullptr;
+    QPlainTextEdit *m_txtSsmRaw      = nullptr;
 
     // ── Backend objects ───────────────────────────────────────────────────────
     AppSettings      m_settings;
@@ -181,9 +166,9 @@ private:
     int              m_ssmConsecutive  = 0;
 
     // SSM CSV logging
-    QFile            m_ssmLogFile;
-    QTextStream      m_ssmLogStream;
+    QFile       m_ssmLogFile;
+    QTextStream m_ssmLogStream;
 
-    // SER player
+    // SER player (embedded as tab 3)
     SerPlayerDialog *m_serPlayer = nullptr;
 };

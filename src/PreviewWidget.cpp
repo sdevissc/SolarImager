@@ -113,15 +113,28 @@ void PreviewWidget::mouseReleaseEvent(QMouseEvent *e)
     QLabel::mouseReleaseEvent(e);
 }
 
+void PreviewWidget::setScrollOffset(int x, int y)
+{
+    m_scrollX = x;
+    m_scrollY = y;
+}
+
 // ── paint ─────────────────────────────────────────────────────────────────────
 
 void PreviewWidget::paintEvent(QPaintEvent *e)
 {
-    QLabel::paintEvent(e);   // draw the pixmap first
-
     QPainter p(this);
 
-    // Draw the rubber band while dragging only
+    // Draw pixmap at scroll offset (for zoom > 100%)
+    const QPixmap pix = this->pixmap(Qt::ReturnByValue);
+    if (!pix.isNull()) {
+        p.drawPixmap(m_scrollX, m_scrollY, pix);
+    } else {
+        // No pixmap — let QLabel draw its text
+        QLabel::paintEvent(e);
+    }
+
+    // Draw the rubber band while dragging
     if (m_dragging) {
         QRect r = QRect(m_dragStart, m_dragCurrent).normalized();
         p.setPen(QPen(QColor(255, 200, 0), 1, Qt::DashLine));

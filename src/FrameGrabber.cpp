@@ -226,8 +226,19 @@ void FrameGrabber::run()
         // ── Preview throttle ─────────────────────────────────────────────
         bool recActive = false;
         { QMutexLocker lock(&m_mutex); recActive = m_recording; }
-        const int    displayFps  = recActive ? PREVIEW_FPS_RECORDING : PREVIEW_FPS;
-        const qint64 intervalNs  = 1'000'000'000LL / displayFps;
+        // Adaptive display fps: large frames (>2MP) are throttled more
+        // to avoid saturating the UI thread with expensive LUT/scale ops.
+        // Recording path is throttled further to leave CPU headroom for disk I/O.
+        const long pixels = static_cast<long>(frame.width()) * frame.height();
+        int maxDisplayFps;
+        if (recActive) {
+            maxDisplayFps = (pixels > 2'000'000) ? 3 : 5;
+        } else {
+            if      (pixels > 6'000'000) maxDisplayFps = 10;
+            else if (pixels > 2'000'000) maxDisplayFps = 15;
+            else                         maxDisplayFps = 25;
+        }
+        const qint64 intervalNs = 1'000'000'000LL / maxDisplayFps;
         qint64 nowNs = timer.nsecsElapsed();
         if (nowNs - m_lastPreviewNs >= intervalNs) {
             emit frameReady(frame);

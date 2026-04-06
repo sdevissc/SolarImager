@@ -16,8 +16,8 @@ class FrameGrabber : public QThread
     Q_OBJECT
 
 public:
-    static constexpr int PREVIEW_FPS           = 30;  ///< Display fps when idle
-    static constexpr int PREVIEW_FPS_RECORDING = 15;  ///< Display fps when recording
+    static constexpr int PREVIEW_FPS           = 15;  ///< Display fps when idle
+    static constexpr int PREVIEW_FPS_RECORDING =  5;  ///< Display fps when recording (save CPU for I/O)
 
     explicit FrameGrabber(CameraInterface *camera, QObject *parent = nullptr);
 

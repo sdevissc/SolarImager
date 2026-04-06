@@ -19,6 +19,10 @@ public:
     /// scale factor between displayed pixels and sensor pixels.
     void setImageSize(int w, int h);
 
+    /// For zoom > 100%: set the scroll offset so the cropped pixmap
+    /// is drawn at the correct position within the full-sized widget.
+    void setScrollOffset(int x, int y);
+
     /// Clear the ROI overlay (called after clearRoi())
     void clearRoi();
 
@@ -42,4 +46,6 @@ private:
 
     int    m_imageW = 0;
     int    m_imageH = 0;
+    int    m_scrollX = 0;
+    int    m_scrollY = 0;
 };
